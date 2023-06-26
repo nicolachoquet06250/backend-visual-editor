@@ -1,0 +1,12 @@
+section {
+    max-width: 300px;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+section:hover {
+    -webkit-box-shadow: 3px 3px 10px 3px #090080;
+    -moz-box-shadow: 3px 3px 10px 3px #090080;
+    box-shadow: 3px 3px 10px 3px #090080;
+}

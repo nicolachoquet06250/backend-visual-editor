@@ -1,0 +1,22 @@
+dialog {
+    --ratio: 3.74;
+    border: none !important;
+    border-radius: calc(5px * var(--ratio));
+    box-shadow: 0 0 #0000, 0 0 #0000, 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    padding: 1.6rem;
+    position: fixed;
+    top: 50px;
+    max-height: calc(100% - 100px);
+    max-width: 100%;
+}
+
+dialog::before {
+    content: '';
+    display: block;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: -1;
+}

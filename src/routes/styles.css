@@ -1,6 +1,10 @@
 /* THIS FILE IS JUST FOR EXAMPLES, DELETE IT IF YOU DON'T NEED IT */
 
 /* SHELL ---------------------------------------- */
+* {
+  box-sizing: border-box;
+}
+
 html {
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
@@ -11,6 +15,7 @@ body {
   background: var(--qwik-dark-background);
   color: var(--qwik-dark-text);
   overflow-x: hidden;
+  position: relative;
 }
 
 /* HEADINGS ------------------------------------- */
