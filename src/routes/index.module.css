@@ -1,8 +1,10 @@
 main {
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: space-between;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 
     padding: 10px;
+
+    min-height: calc(100vh - 98px - 112px);
 }

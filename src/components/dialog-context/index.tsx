@@ -6,8 +6,7 @@ import {
     Slot,
     useContext,
     useContextProvider,
-    useSignal, useStylesScoped$,
-    useTask$
+    useSignal, useStylesScoped$
 } from "@builder.io/qwik";
 import styles from './dialog-context.module.css?inline'
 
@@ -58,12 +57,11 @@ export default component$(() => {
             {c.value && <c.value
                 onClose={$(() => (d.value = false))}
                 onnOpen={$(() => (d.value = true))}
-                onSetContent={$((content: Component<any>) => (c.value = content))}
+                onSetContent={$((content: Component<any>) => {
+                    // eslint-disable-next-line qwik/valid-lexical-scope
+                    c.value = content
+                })}
             />}
-
-            <button onClick$={() => (d.value = false)}>
-                Fermer
-            </button>
         </dialog>
     </>);
 });

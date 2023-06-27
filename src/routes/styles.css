@@ -124,6 +124,11 @@ button {
   padding: 15px 20px;
   text-align: center;
 }
+a.button.danger,
+button.danger {
+  background: var(--qwik-danger-background);
+}
+
 
 a.button.button-dark,
 button.button-dark {
