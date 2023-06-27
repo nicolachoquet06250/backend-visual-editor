@@ -31,51 +31,61 @@ export const Project = component$<ProjectForm>(props => {
             })());
         }
 
-        return  await Promise.all(promises);
+        return [dirHandle, await Promise.all(promises)] as const;
+    });
+    
+    const writeFile = $(async (handler: FileSystemDirectoryHandle, defaultJSON: object) => {
+        const fileHandle = await handler.getFileHandle('.algo', {
+            create: true
+        });
+
+        const file = await fileHandle.getFile();
+
+        if (await file.text() === '') {
+            const writable = await fileHandle.createWritable();
+
+            fileJSON.value = defaultJSON;
+
+            await writable.write(JSON.stringify(fileJSON.value));
+
+            await writable.close()
+        }
+
+        return fileHandle.getFile()
     });
 
     const handleCreatePathIfExists = $(async () => {
-        await closeDialog();
+        try {
+            await closeDialog();
 
-        const files = await getDirectoryContent();
-        const handler = await files.pop()?.handle;
-        if (handler) {
-            const fileHandle = await handler.getFileHandle('.algo', {
-                create: true
-            });
+            const [handler] = await getDirectoryContent();
 
-            let file = await fileHandle.getFile();
+            console.log(handler);
 
-            if (await file.text() === '') {
-                const writable = await fileHandle.createWritable();
-
-                fileJSON.value = {
+            if (handler) {
+                const file = await writeFile(handler, {
                     title: 'Backend php script',
                     scopes: [{
                         name: 'main',
                         type: 'root',
                         scopes: []
                     }]
-                };
+                });
 
-                await writable.write(JSON.stringify(fileJSON.value));
+                const text = await file.text();
 
-                await writable.close()
+                await setContent(
+                    component$<{ onClose: QRL<() => void> }>(({onClose}) => (<>
+                        <pre>{JSON.stringify(JSON.parse(text), null, 1)}</pre>
+
+                        <button onClick$={onClose}>X</button>
+                    </>))
+                );
+
+                await openDialog();
             }
-
-            file = await fileHandle.getFile()
-
-            const text = await file.text();
-
-            await setContent(
-                component$<{ onClose: QRL<() => void> }>(({ onClose }) => (<>
-                    <pre>{JSON.stringify(JSON.parse(text), null, 1)}</pre>
-
-                    <button onClick$={onClose}>X</button>
-                </>))
-            );
-
-            await openDialog();
+        } catch (err) {
+            console.error(err);
         }
     });
     
