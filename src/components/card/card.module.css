@@ -1,0 +1,53 @@
+section {
+    width: 100%;
+    position: relative;
+    padding: 20px;
+
+    border: 1px solid rgba(0, 0, 0, .8);
+    background-color: rgba(0, 0, 0, .8);
+    border-radius: 10px;
+}
+
+section[data-max_content] {
+    width: max-content;
+}
+
+section > h1 {
+    text-align: left;
+    font-size: 20px;
+}
+
+.left,
+.right,
+.top,
+.bottom {
+    position: absolute;
+}
+
+.left,
+.right {
+    top: 0;
+    bottom: 0;
+}
+
+.left {
+    left: 0;
+}
+
+.right {
+    right: 0;
+}
+
+.top,
+.bottom {
+    right: 0;
+    left: 0;
+}
+
+.top {
+    top: 0;
+}
+
+.bottom {
+    bottom: 0;
+}

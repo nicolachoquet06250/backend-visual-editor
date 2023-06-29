@@ -1,7 +1,5 @@
 .footer {
   width: 100%;
-  position: sticky;
-  bottom: -1px;
   background-color: var(--qwik-dark-background);
 }
 

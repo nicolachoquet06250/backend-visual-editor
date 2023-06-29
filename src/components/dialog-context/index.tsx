@@ -8,7 +8,8 @@ import {
     useContextProvider,
     useSignal, useStylesScoped$
 } from "@builder.io/qwik";
-import styles from './dialog-context.module.css?inline'
+import styles from './dialog-context.module.css?inline';
+import {useStateFromContext} from "~/hooks/useState";
 
 export type DialogState = {
     opened: boolean,
@@ -21,45 +22,64 @@ export type DialogEvents = {
     onSetContent: QRL<(content: Component<DialogEvents>) => void>
 };
 
-export const DialogContext = createContextId<Signal<DialogState['opened']>>('dialog.context.opened');
+export const DialogContextOpened = createContextId<Signal<DialogState['opened']>>('dialog.context.opened');
 export const DialogContextContent = createContextId<Signal<DialogState['content']>>('dialog.context.content');
+export const JsonAlgoContext = createContextId<Signal<JsonAlgo>>('json.algo.context');
 
-export function useOpenDialog() {
-    const opened = useContext(DialogContext);
-
-    return $(() => (opened.value = true));
-}
-export function useCloseDialog() {
-    const opened = useContext(DialogContext);
-
-    return $(() => (opened.value = false));
-}
-export function useSetDialogContent<T extends object>() {
+export function useDialog<T extends object>() {
+    const opened = useContext<Signal<boolean>>(DialogContextOpened);
     const content = useContext<Signal<Component<T>>>(DialogContextContent);
 
-    // eslint-disable-next-line qwik/valid-lexical-scope
-    return $((c: Component<T>) => (content.value = c));
+    return [{opened, content}, {
+        open: $<() => void>(() => (opened.value = true)),
+        close: $<() => void>(() => (opened.value = false)),
+        // eslint-disable-next-line qwik/valid-lexical-scope
+        setContent: $<(c: Component<T>) => void>(c => (content.value = c))
+    }] as const
+}
+
+export type JsonAlgo = {
+    title: string,
+    type?: string,
+    data?: Record<string, any>,
+    scopes?: JsonAlgo[]
+}
+
+export function useJsonAlgo() {
+    return useStateFromContext(JsonAlgoContext);
 }
 
 export default component$(() => {
     useStylesScoped$(styles);
 
-    const d = useSignal(false);
-    const c = useSignal<Component<any>>();
+    const opened = useSignal(false);
+    const content = useSignal<Component<any>>();
+    const jsonAlgo = useSignal<JsonAlgo>({
+        title: 'Backend php script',
+        scopes: []
+    });
 
-    useContextProvider(DialogContext, d);
-    useContextProvider(DialogContextContent, c);
+    useContextProvider(DialogContextOpened, opened);
+    useContextProvider(DialogContextContent, content);
+    useContextProvider(JsonAlgoContext, jsonAlgo);
+
+    const handleClose = $(() =>
+        (opened.value = false));
 
     return (<>
         <Slot/>
 
-        <dialog open={d.value}>
-            {c.value && <c.value
-                onClose={$(() => (d.value = false))}
-                onnOpen={$(() => (d.value = true))}
-                onSetContent={$((content: Component<any>) => {
+        <dialog open={opened.value}>
+            <header>
+                <button class='danger' onClick$={handleClose}>X</button>
+            </header>
+
+            {content.value && <content.value
+                onClose={handleClose}
+                onnOpen={$(() => (opened.value = true))}
+                onSetContent={$<(c: Component<any>) => void>(c => {
                     // eslint-disable-next-line qwik/valid-lexical-scope
-                    c.value = content
+                    content.value = c
                 })}
             />}
         </dialog>

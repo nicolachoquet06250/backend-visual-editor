@@ -1,14 +1,13 @@
-import type {QRL} from '@builder.io/qwik';
-import {$, component$, useSignal} from '@builder.io/qwik';
-import type {DialogEvents} from "~/components/dialog-context";
-import {useCloseDialog, useOpenDialog, useSetDialogContent} from "~/components/dialog-context";
+import {$, component$} from '@builder.io/qwik';
+import type {DialogEvents, JsonAlgo} from "~/components/dialog-context";
+import {useDialog, useJsonAlgo} from "~/components/dialog-context";
+import {useNavigate} from "@builder.io/qwik-city";
 
 export const OpenProjectButton = component$(() => {
-    const closeDialog = useCloseDialog();
-    const openDialog = useOpenDialog();
-    const setContent = useSetDialogContent<DialogEvents>();
-
-    const fileJSON = useSignal({});
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [_, {setContent}] = useDialog<DialogEvents>();
+    const [json, setJson] = useJsonAlgo();
+    const go = useNavigate();
 
     const getDirectoryContent = $(async () => {
         const dirHandle = await window.showDirectoryPicker({
@@ -30,65 +29,53 @@ export const OpenProjectButton = component$(() => {
 
         return [dirHandle, await Promise.all(promises)] as const;
     });
+    const writeFile = $<(h: FileSystemDirectoryHandle, dj: JsonAlgo) => Promise<File>>(
+        async (handler, defaultJSON) => {
+            const fileHandle = await handler.getFileHandle('.algo', {
+                create: true
+            });
 
-    const writeFile = $(async (handler: FileSystemDirectoryHandle, defaultJSON: object) => {
-        const fileHandle = await handler.getFileHandle('.algo', {
-            create: true
-        });
+            const file = await fileHandle.getFile();
 
-        const file = await fileHandle.getFile();
+            if (await file.text() === '') {
+                const writable = await fileHandle.createWritable();
 
-        if (await file.text() === '') {
-            const writable = await fileHandle.createWritable();
+                await setJson(defaultJSON);
 
-            fileJSON.value = defaultJSON;
+                await writable.write(JSON.stringify(json.value));
 
-            await writable.write(JSON.stringify(fileJSON.value));
+                await writable.close()
+            }
 
-            await writable.close()
+            await setJson(JSON.parse(await (await fileHandle.getFile()).text()));
+
+            return fileHandle.getFile()
         }
-
-        return fileHandle.getFile()
-    });
-
+    );
     const handleCreatePathIfExists = $(async () => {
         try {
-            await closeDialog();
-
             const [handler] = await getDirectoryContent();
-
-            console.log(handler);
-
             if (handler) {
                 const file = await writeFile(handler, {
                     title: 'Backend php script',
-                    scopes: [{
-                        name: 'main',
-                        type: 'root',
-                        scopes: []
-                    }]
+                    scopes: []
                 });
 
                 const text = await file.text();
 
                 await setContent(
-                    component$<{ onClose: QRL<() => void> }>(({onClose}) => (<>
-                        <header style={{display: 'flex', justifyContent: 'flex-end', alignItems: 'center'}}>
-                            <button class='danger' onClick$={onClose}>X</button>
-                        </header>
-
-                        <pre>{JSON.stringify(JSON.parse(text), null, 1)}</pre>
-                    </>))
+                    component$(() => (<pre>{JSON.stringify(JSON.parse(text), null, 1)}</pre>))
                 );
 
-                await openDialog();
+                await go('/project');
             }
         } catch (err) {
             console.error(err);
         }
     });
 
-    return (<button preventdefault:click onClick$={handleCreatePathIfExists}>
-        Ouvrir un projet
-    </button>);
+    return (<button
+        preventdefault:click
+        onClick$={handleCreatePathIfExists}
+    > Ouvrir un projet </button>);
 });

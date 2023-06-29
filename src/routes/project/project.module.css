@@ -1,0 +1,17 @@
+main {
+    display: flex;
+    flex-direction: row;
+
+    width: 100%;
+}
+
+main > div {
+    flex: 1;
+    width: 100%;
+
+    padding: 10px;
+}
+
+.back {
+    margin: 10px;
+}
