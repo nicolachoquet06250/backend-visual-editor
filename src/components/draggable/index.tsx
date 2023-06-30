@@ -1,7 +1,7 @@
 import type {QRL, QwikDragEvent} from "@builder.io/qwik";
 import {component$, Slot} from "@builder.io/qwik";
 
-export type DragNDropEvent = (ev: QwikDragEvent, el: HTMLElement) => null|void|Promise<null|void>;
+export type DragNDropEvent = (ev: QwikDragEvent, el: HTMLElement) => any|Promise<any>;
 
 export type DraggableProps = {
     onDragStart$?: DragNDropEvent|QRL<DragNDropEvent>,

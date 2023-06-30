@@ -39,6 +39,7 @@ export function useDialog<T extends object>() {
 }
 
 export type JsonAlgo = {
+    id?: string,
     title: string,
     type?: string,
     data?: Record<string, any>,

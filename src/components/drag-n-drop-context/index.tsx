@@ -4,15 +4,14 @@ import {
     createContextId,
     Slot,
     useContextProvider,
-    useSignal,
-    useTask$
+    useSignal
 } from "@builder.io/qwik";
 import type {Setter} from "~/hooks/setterFactory";
 import {useStateFromContext} from "~/hooks/useState";
 
 const DragNDropContext = createContextId<Signal<unknown>>('drag.and.drop.context');
-const DragNDropContextDrag = createContextId<Signal<boolean>>('drag.and.drop.drag.context');
-const DragNDropContextDropped = createContextId<Signal<boolean>>('drag.and.drop.dropped.context');
+// const DragNDropContextDrag = createContextId<Signal<boolean>>('drag.and.drop.drag.context');
+// const DragNDropContextDropped = createContextId<Signal<boolean>>('drag.and.drop.dropped.context');
 
 export function useDragNDrop<T>() {
     const [dragNDrop, setDragNDrop] = useStateFromContext(DragNDropContext)
@@ -31,25 +30,34 @@ export function useDragNDrop<T>() {
 //     ] as const;
 // }
 
-export const DragNDrop = component$(() => {
-    const dragNDropDrag = useSignal<boolean>(false);
-    const dragNDropDropped = useSignal<boolean>(false);
+export function useDragNDropContext<T>() {
+    return component$<{ data?: T }>(({ data = undefined }) => {
+        useContextProvider(DragNDropContext, useSignal<unknown>(data));
 
-    useContextProvider(DragNDropContext, useSignal<unknown>());
-    useContextProvider(DragNDropContextDrag, dragNDropDrag);
-    useContextProvider(DragNDropContextDropped, dragNDropDropped);
-
-    useTask$(({ track }) => {
-        track(() => dragNDropDrag.value);
-        track(() => dragNDropDropped.value);
-
-        if (dragNDropDrag.value) {
-            dragNDropDropped.value = false;
-        }
-        if (dragNDropDropped.value) {
-            dragNDropDrag.value = false;
-        }
+        return (<Slot />);
     });
-
-    return (<Slot />);
-});
+}
+// export const DragNDrop = component$<{
+//     data?: unknown
+// }>(({ data = undefined }) => {
+//     // const dragNDropDrag = useSignal<boolean>(false);
+//     // const dragNDropDropped = useSignal<boolean>(false);
+//
+//     useContextProvider(DragNDropContext, useSignal<unknown>(data));
+//     // useContextProvider(DragNDropContextDrag, dragNDropDrag);
+//     // useContextProvider(DragNDropContextDropped, dragNDropDropped);
+//
+//     // useTask$(({ track }) => {
+//     //     track(() => dragNDropDrag.value);
+//     //     track(() => dragNDropDropped.value);
+//     //
+//     //     if (dragNDropDrag.value) {
+//     //         dragNDropDropped.value = false;
+//     //     }
+//     //     if (dragNDropDropped.value) {
+//     //         dragNDropDrag.value = false;
+//     //     }
+//     // });
+//
+//     return (<Slot />);
+// });

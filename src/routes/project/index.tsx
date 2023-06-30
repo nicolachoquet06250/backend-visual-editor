@@ -8,10 +8,12 @@ import styles from './project.module.css?inline';
 import css from './project.module.css';
 
 import * as blocs from '~/components/blocs';
-import {DragNDrop} from "~/components/drag-n-drop-context";
+import {useDragNDropContext} from "~/components/drag-n-drop-context";
+import type {DragNDropDataTransfer} from "~/components/blocs";
 
 export default component$(() => {
     useStylesScoped$(styles);
+    const DragNDrop = useDragNDropContext<DragNDropDataTransfer>();
 
     const go = useNavigate();
 
@@ -27,13 +29,10 @@ export default component$(() => {
                     onClick$={handleGo}
                 > Ouvrir un autre project </button>
 
-                {Object.keys(blocs).map(k => {
-                    const Comp = blocs[k as keyof typeof blocs];
-
-                    return (<SidebarItem key={k}>
+                {Object.entries(blocs).map(([k, Comp]) =>
+                    (<SidebarItem key={k}>
                         <Comp />
-                    </SidebarItem>);
-                })}
+                    </SidebarItem>))}
             </Sidebar>
 
             <div>
