@@ -10,14 +10,19 @@ import css from './project.module.css';
 import * as blocs from '~/components/blocs';
 import {useDragNDropContext} from "~/components/drag-n-drop-context";
 import type {DragNDropDataTransfer} from "~/components/blocs";
+import {useFileSystemDirectory} from "~/components/file-system-context";
 
 export default component$(() => {
     useStylesScoped$(styles);
     const DragNDrop = useDragNDropContext<DragNDropDataTransfer>();
+    const [,,,,resetFileSystemDirectoryHandler] = useFileSystemDirectory();
 
     const go = useNavigate();
 
-    const handleGo = $(async () => await go('/'));
+    const handleGo = $(async () => {
+        await resetFileSystemDirectoryHandler();
+        await go('/');
+    });
 
     return (<DragNDrop>
         <main>

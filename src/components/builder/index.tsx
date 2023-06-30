@@ -18,11 +18,17 @@ export type ExtractFirstLetter<T extends string> = T extends `${FirstLetter<T>}$
 export type UcFirst<T extends string> = `${Uppercase<FirstLetter<T>>}${ExtractFirstLetter<T>}`;
 export type AllUcFirst<T> = { [K in keyof T]: K extends string ? UcFirst<K> : K }[keyof T];
 
-type StateTuple<T> = [Signal<T>, Setter<T>]
+type StateTuple<T, Persist extends boolean = false> = Persist extends false ? [
+    signal: Signal<T>,
+    setter: Setter<T>
+] : [
+    signal: Signal<T>,
+    setter: Setter<T>,
+    persistantSetter: Setter<T>
+];
 
-// @ts-ignore
 const RecursiveTree = component$<JsonAlgo & {
-    jsonAlgo: Readonly<StateTuple<JsonAlgo>>,
+    jsonAlgo: StateTuple<JsonAlgo, true>,
     dragNDropDataTransfer: StateTuple<DragNDropDataTransfer>
 }>(({
     id= '',
@@ -35,7 +41,7 @@ const RecursiveTree = component$<JsonAlgo & {
 }) => {
     const DragNDrop = useDragNDropContext<DragNDropDataTransfer>();
 
-    const [json, setJson] = jsonAlgo;
+    const [json,, setPersistentJson] = jsonAlgo;
     const [dragNDropData] = dragNDropDataTransfer;
 
     const bgColors = useStore({
@@ -81,7 +87,7 @@ const RecursiveTree = component$<JsonAlgo & {
     });
 
     const setDataBottom = $(async () => {
-        await setJson(await findById(json.value, (node) => ({
+        await setPersistentJson(await findById(json.value, (node) => ({
             ...node,
             scopes: [
                 ...node.scopes ?? [],
@@ -94,7 +100,7 @@ const RecursiveTree = component$<JsonAlgo & {
         })));
     });
     const setDataLeft = $(async () => {
-        await setJson(await findParentById(json.value, (parentScopes) => ([
+        await setPersistentJson(await findParentById(json.value, (parentScopes) => ([
             {
                 id: Date.now().toString(),
                 scopes: [],
@@ -104,7 +110,7 @@ const RecursiveTree = component$<JsonAlgo & {
         ])));
     });
     const setDataRight = $(async () => {
-        await setJson(await findParentById(json.value, (parentScopes) => ([
+        await setPersistentJson(await findParentById(json.value, (parentScopes) => ([
             ...parentScopes,
             {
                 id: Date.now().toString(),
@@ -221,13 +227,17 @@ const RecursiveTree = component$<JsonAlgo & {
 })
 
 export const Builder = component$(() => {
-    const [json, setJson] = useJsonAlgo();
+    const [json, setJson, setPersistentJson] = useJsonAlgo();
     const [dragNDropData, _] = useDragNDrop<DragNDropDataTransfer>();
 
     return (<div class={css.div}>
         <h1>{json.value.title}</h1>
 
-        <RecursiveTree {...json.value} jsonAlgo={[json, setJson]} dragNDropDataTransfer={[dragNDropData, _]} />
+        <RecursiveTree
+            {...json.value}
+            jsonAlgo={[json, setJson, setPersistentJson as Setter<JsonAlgo>]}
+            dragNDropDataTransfer={[dragNDropData, _]}
+        />
 
         <pre>{JSON.stringify(json.value, null, 1)}</pre>
     </div>);

@@ -10,6 +10,7 @@ import {
 } from "@builder.io/qwik";
 import styles from './dialog-context.module.css?inline';
 import {useStateFromContext} from "~/hooks/useState";
+import {useFileSystemDirectory} from "~/components/file-system-context";
 
 export type DialogState = {
     opened: boolean,
@@ -47,7 +48,28 @@ export type JsonAlgo = {
 }
 
 export function useJsonAlgo() {
-    return useStateFromContext(JsonAlgoContext);
+    const [json, _setJson] = useStateFromContext(JsonAlgoContext);
+    const [handler] = useFileSystemDirectory();
+
+    const writeFile = $<(content: JsonAlgo) => void>(async (content) => {
+        if (handler.value) {
+            const fileHandle = await handler.value.getFileHandle('.algo', {
+                create: true
+            });
+
+            const writable = await fileHandle.createWritable();
+            await writable.write(JSON.stringify(content));
+            await writable.close();
+
+            await _setJson(content);
+        }
+    });
+
+    return [json, _setJson, $<(c: JsonAlgo) => void>(async (json) => await writeFile(json))] as [
+        json: typeof json,
+        setJson: typeof _setJson,
+        setPersistantJson: QRL<(json: JsonAlgo) => void>
+    ];
 }
 
 export default component$(() => {

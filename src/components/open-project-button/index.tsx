@@ -2,14 +2,16 @@ import {$, component$} from '@builder.io/qwik';
 import type {DialogEvents, JsonAlgo} from "~/components/dialog-context";
 import {useDialog, useJsonAlgo} from "~/components/dialog-context";
 import {useNavigate} from "@builder.io/qwik-city";
+import {useFileSystemDirectory} from "~/components/file-system-context";
 
 export const OpenProjectButton = component$(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [_, {setContent}] = useDialog<DialogEvents>();
     const [json, setJson] = useJsonAlgo();
+    const [handler,,,getDirectoryContent] = useFileSystemDirectory();
     const go = useNavigate();
 
-    const getDirectoryContent = $(async () => {
+    /*const getDirectoryContent = $(async () => {
         const dirHandle = await window.showDirectoryPicker({
             startIn: 'desktop'
         });
@@ -28,7 +30,7 @@ export const OpenProjectButton = component$(() => {
         }
 
         return [dirHandle, await Promise.all(promises)] as const;
-    });
+    });*/
     const writeFile = $<(h: FileSystemDirectoryHandle, dj: JsonAlgo) => Promise<File>>(
         async (handler, defaultJSON) => {
             const fileHandle = await handler.getFileHandle('.algo', {
@@ -54,9 +56,13 @@ export const OpenProjectButton = component$(() => {
     );
     const handleCreatePathIfExists = $(async () => {
         try {
-            const [handler] = await getDirectoryContent();
-            if (handler) {
-                const file = await writeFile(handler, {
+            await getDirectoryContent();
+            // eslint-disable-next-line qwik/valid-lexical-scope
+            console.log(handler.value)
+            // eslint-disable-next-line qwik/valid-lexical-scope
+            if (handler.value) {
+                // eslint-disable-next-line qwik/valid-lexical-scope
+                const file = await writeFile(handler.value, {
                     title: 'Backend php script',
                     scopes: []
                 });
