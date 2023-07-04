@@ -1,4 +1,4 @@
-import {$, component$, useStylesScoped$} from "@builder.io/qwik";
+import {$, component$, useStylesScoped$, useVisibleTask$} from "@builder.io/qwik";
 import type {DocumentHead} from "@builder.io/qwik-city";
 import {useNavigate} from "@builder.io/qwik-city";
 import {Builder} from "~/components/builder";
@@ -14,10 +14,15 @@ import {useFileSystemDirectory} from "~/components/file-system-context";
 
 export default component$(() => {
     useStylesScoped$(styles);
+
     const DragNDrop = useDragNDropContext<DragNDropDataTransfer>();
-    const [,,,,resetFileSystemDirectoryHandler] = useFileSystemDirectory();
+    const [dirHandler,,,,resetFileSystemDirectoryHandler] = useFileSystemDirectory();
 
     const go = useNavigate();
+
+    useVisibleTask$(async () => {
+        !dirHandler.value && (window.location.href = '/');
+    });
 
     const handleGo = $(async () => {
         await resetFileSystemDirectoryHandler();

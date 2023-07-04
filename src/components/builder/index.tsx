@@ -27,10 +27,12 @@ type StateTuple<T, Persist extends boolean = false> = Persist extends false ? [
     persistantSetter: Setter<T>
 ];
 
-const RecursiveTree = component$<JsonAlgo & {
+type AdditionalJsonAlgo = {
     jsonAlgo: StateTuple<JsonAlgo, true>,
     dragNDropDataTransfer: StateTuple<DragNDropDataTransfer>
-}>(({
+}
+
+const RecursiveTree = component$<JsonAlgo & AdditionalJsonAlgo>(({
     id= '',
     title,
     type = 'main',
@@ -44,7 +46,13 @@ const RecursiveTree = component$<JsonAlgo & {
     const [json,, setPersistentJson] = jsonAlgo;
     const [dragNDropData] = dragNDropDataTransfer;
 
-    const bgColors = useStore({
+    type BgColors = {
+        bottom: string,
+        left: string,
+        right: string
+    };
+
+    const bgColors = useStore<BgColors>({
         bottom: 'red',
         left: 'red',
         right: 'red'
@@ -53,20 +61,26 @@ const RecursiveTree = component$<JsonAlgo & {
     const width = useSignal<number>(0);
     const height = useSignal<number>(0);
 
-    const findById = $(async function findById(node: JsonAlgo, cb: (node: JsonAlgo) => JsonAlgo) {
+    type FindById<T extends JsonAlgo = JsonAlgo> = (
+        node: T,
+        cb: (node: T) => T
+    ) => Promise<T>;
+    type FindParentById<T extends JsonAlgo = JsonAlgo> = (
+        node: T,
+        cb: (parr: T[]) => T[]
+    ) => Promise<T>;
+
+    const findById = $<FindById>(async function findById(node, cb) {
         if ((node.id ?? '') === id) return cb(node);
 
         const tmp: JsonAlgo[] = [];
         for (const c of (node.scopes ?? [])) {
-            tmp.push(await findById(c, cb))
+            tmp.push(await findById(c, cb));
         }
 
-        return {
-            ...node,
-            scopes: tmp
-        };
+        return {...node, scopes: tmp};
     });
-    const findParentById = $<(node: JsonAlgo, cb: (parr: JsonAlgo[]) => JsonAlgo[]) => Promise<JsonAlgo>>(async function findParentById(node, cb): Promise<JsonAlgo> {
+    const findParentById = $<FindParentById>(async function findParentById(node, cb): Promise<JsonAlgo> {
         return {
             ...node,
             scopes: await (async () => {
@@ -83,10 +97,12 @@ const RecursiveTree = component$<JsonAlgo & {
 
                 return exited ? cb(node.scopes ?? []) : tmp;
             })()
-        }
+        };
     });
 
-    const setDataBottom = $(async () => {
+    type DataSetter = () => Promise<void>
+
+    const setDataBottom = $<DataSetter>(async () => {
         await setPersistentJson(await findById(json.value, (node) => ({
             ...node,
             scopes: [
@@ -99,7 +115,7 @@ const RecursiveTree = component$<JsonAlgo & {
             ]
         })));
     });
-    const setDataLeft = $(async () => {
+    const setDataLeft = $<DataSetter>(async () => {
         await setPersistentJson(await findParentById(json.value, (parentScopes) => ([
             {
                 id: Date.now().toString(),
@@ -109,7 +125,7 @@ const RecursiveTree = component$<JsonAlgo & {
             ...parentScopes
         ])));
     });
-    const setDataRight = $(async () => {
+    const setDataRight = $<DataSetter>(async () => {
         await setPersistentJson(await findParentById(json.value, (parentScopes) => ([
             ...parentScopes,
             {
@@ -120,124 +136,106 @@ const RecursiveTree = component$<JsonAlgo & {
         ])));
     });
 
-    function handleDropFactory<S extends keyof typeof bgColors>(side: S, id?: string, cb?: QRL<(id: string) => void>) {
+    function handleDropFactory<S extends keyof BgColors>(side: S, id?: string, cb?: QRL<(id: string) => void>) {
         return $(async () => {
             if (cb) await cb(id ?? '');
 
             bgColors[side] = 'red';
         });
     }
-    function handleDragEnterFactory(side: keyof typeof bgColors) {
+    function handleDragEnterFactory(side: keyof BgColors) {
         return $(() => (bgColors[side] = 'yellow'));
     }
-    function handleDragLeaveFactory(side: keyof typeof bgColors) {
+    function handleDragLeaveFactory(side: keyof BgColors) {
         return $(() => (bgColors[side] = 'red'));
     }
 
-    return (<DragNDrop data={dragNDropData.value}>
-        <section style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center'
-        }}>
-            <div style={{
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
-            }}>
-                <Card widthAuto={true} width={width} height={height}>
-                    <span q:slot='title'>{type === 'main' ? 'Start' : title}</span>
+    return (<section class={css.recursiveTree}>
+        <div class={css.recursiveTreeCardContainer}>
+            <Card widthAuto={true} width={width} height={height}>
+                <span q:slot='title'>{type === 'main' ? 'Start' : title}</span>
 
-                    <ul>
-                        {id && (<li>Id: {id}</li>)}
-                        {type !== 'main' && (<li>Type : {type}</li>)}
-                        {Object.keys(data).length > 0 && (<li>
-                            <u>Données</u> <br />
-                            <ul>
-                                {Object.entries(data).map(([k, v]) =>
-                                    (<li key={k}>
-                                        {k}: {v}
-                                    </li>)
-                                )}
-                            </ul>
-                        </li>)}
-                    </ul>
-                </Card>
+                <ul>
+                    {id && (<li>Id: {id}</li>)}
+                    {type !== 'main' && (<li>Type : {type}</li>)}
+                    {Object.keys(data).length > 0 && (<li>
+                        <u>Données</u> <br />
+                        <ul>
+                            {Object.entries(data).map(([k, v]) =>
+                                (<li key={k}>
+                                    {k}: {v}
+                                </li>)
+                            )}
+                        </ul>
+                    </li>)}
+                </ul>
+            </Card>
 
-                <DragZone
-                    style={{'--background-color': bgColors.bottom}}
-                    width={width.value} height={20}
-                    preventDefaultDrop
-                    preventDefaultDragOver
-                    onDrop$={handleDropFactory('bottom', id, setDataBottom)}
-                    onDragEnter$={handleDragEnterFactory('bottom')}
-                    onDragLeave$={handleDragLeaveFactory('bottom')}
-                />
+            <DragZone
+                style={{'--background-color': bgColors.bottom}}
+                width={width.value} height={20}
+                preventDefaultDrop
+                preventDefaultDragOver
+                onDrop$={handleDropFactory('bottom', id, setDataBottom)}
+                onDragEnter$={handleDragEnterFactory('bottom')}
+                onDragLeave$={handleDragLeaveFactory('bottom')}
+            />
 
-                {type !== 'main' && (<>
-                    <div style={{
-                        position: 'absolute',
-                        left: '-20px'
-                    }}>
-                        <DragZone
-                            style={{'--background-color': bgColors.left}}
-                            width={20} height={height.value}
-                            preventDefaultDrop
-                            preventDefaultDragOver
-                            onDrop$={handleDropFactory('left', id, setDataLeft)}
-                            onDragEnter$={handleDragEnterFactory('left')}
-                            onDragLeave$={handleDragLeaveFactory('left')}
-                        />
-                    </div>
+            {type !== 'main' && (<>
+                <div style={{position: 'absolute', left: '-20px'}}>
+                    <DragZone
+                        style={{'--background-color': bgColors.left}}
+                        width={20} height={height.value}
+                        preventDefaultDrop
+                        preventDefaultDragOver
+                        onDrop$={handleDropFactory('left', id, setDataLeft)}
+                        onDragEnter$={handleDragEnterFactory('left')}
+                        onDragLeave$={handleDragLeaveFactory('left')}
+                    />
+                </div>
 
-                    <div style={{
-                        position: 'absolute',
-                        right: '-20px'
-                    }}>
-                        <DragZone
-                            style={{'--background-color': bgColors.right}}
-                            width={20} height={height.value}
-                            preventDefaultDrop
-                            preventDefaultDragOver
-                            onDrop$={handleDropFactory('right', id, setDataRight)}
-                            onDragEnter$={handleDragEnterFactory('right')}
-                            onDragLeave$={handleDragLeaveFactory('right')}
-                        />
-                    </div>
-                </>)}
-            </div>
+                <div style={{position: 'absolute', right: '-20px'}}>
+                    <DragZone
+                        style={{'--background-color': bgColors.right}}
+                        width={20} height={height.value}
+                        preventDefaultDrop
+                        preventDefaultDragOver
+                        onDrop$={handleDropFactory('right', id, setDataRight)}
+                        onDragEnter$={handleDragEnterFactory('right')}
+                        onDragLeave$={handleDragLeaveFactory('right')}
+                    />
+                </div>
+            </>)}
+        </div>
 
-            {scopes.length > 0 && (<div style={{
-                display: 'flex',
-                flexDirection: 'row',
-                justifyContent: 'center',
-                alignItems: 'center'
-            }}>
-                {scopes.map(s => ((<RecursiveTree
-                    {...s}
-                    jsonAlgo={jsonAlgo}
-                    dragNDropDataTransfer={dragNDropDataTransfer}
-                    key={JSON.stringify(s)}
-                />)))}
-            </div>)}
-        </section>
-    </DragNDrop>);
+        {scopes.length > 0 && (<div class={css.recursiveTreeScopeContainer}>
+            {scopes.map(s => ((
+                <DragNDrop key={JSON.stringify(s)} data={dragNDropData.value}>
+                    <RecursiveTree
+                        {...s}
+                        jsonAlgo={jsonAlgo}
+                        dragNDropDataTransfer={dragNDropDataTransfer}
+                    />
+                </DragNDrop>)))}
+        </div>)}
+    </section>);
 })
 
 export const Builder = component$(() => {
     const [json, setJson, setPersistentJson] = useJsonAlgo();
     const [dragNDropData, _] = useDragNDrop<DragNDropDataTransfer>();
+    const DragNDrop = useDragNDropContext<DragNDropDataTransfer>();
 
     return (<div class={css.div}>
         <h1>{json.value.title}</h1>
 
-        <RecursiveTree
-            {...json.value}
-            jsonAlgo={[json, setJson, setPersistentJson as Setter<JsonAlgo>]}
-            dragNDropDataTransfer={[dragNDropData, _]}
-        />
+        <DragNDrop data={dragNDropData.value}>
+            <RecursiveTree
+                {...json.value}
+                jsonAlgo={[json, setJson, setPersistentJson as Setter<JsonAlgo>]}
+                dragNDropDataTransfer={[dragNDropData, _]}
+            />
+        </DragNDrop>
 
         <pre>{JSON.stringify(json.value, null, 1)}</pre>
     </div>);
